@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>toy-v-model</title>
+  </head>
+  <body>
+    <div id="#app">
+      <input type="text" toy-model="msg" />
+      <input type="text" toy-model="name" />
+      {{msg}}
+      <div class="middle_box"><div>{{ msg }}</div></div>
+      <div class="middle_box"><div>{{ name }}</div></div>
+    </div>
+  </body>
+  <script>
+    function ViewModel(data) {
+      this.data = data
+      this.nodes = [] // 将所有的节点放入
+    }
+    ViewModel.prototype.bindNode = function() {}
+    ViewModel.prototype.update = function() {}
+    let obj = { msg: new ViewModel('hello'), name: new ViewModel('双向绑定') }
+
+    function compile(el) {
+      // 获取根节点
+      let rootEl = document.getElementById(el)
+      // 创建临时碎片文档
+      let fragment = document.createDocumentFragment()
+      while (rootEl.firstChild) {
+        fragment.appendChild(rootEl.firstChild)
+      }
+      function replaceEl(fragment) {
+        console.log('fragment', fragment)
+        // 数据在回流之前做处理
+        Array.from(fragment.childNodes).forEach(node => {
+          if (node.nodeType === 1) {
+            //是元素
+            Array.from(node.attributes).forEach(attr => {
+              if (attr.name.includes('toy-')) {
+                // console.log('node', node)
+              }
+            })
+          }
+
+          // 判断有么有{{}}的元素
+          let reg = /\{\{([^}]*)\}\}/g
+          if (node.nodeType === 3 && reg.test(node.textContent)) {
+            console.log('nodeT', node)
+            //是文本
+          }
+
+          //查找嵌套变量，直到找到为止
+          if (node.childNodes.length) {
+            replaceEl(node)
+          }
+        })
+      }
+      replaceEl(fragment)
+      rootEl.appendChild(fragment)
+    }
+
+    compile('#app')
+  </script>
+</html>
