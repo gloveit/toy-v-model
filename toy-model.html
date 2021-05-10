@@ -10,7 +10,7 @@
     <div id="#app">
       <input type="text" toy-model="msg" />
       <input type="text" toy-model="name" />
-      {{msg}}
+      {{msg}}{{name}}
       <div class="middle_box"><div>{{ msg }}</div></div>
       <div class="middle_box"><div>{{ name }}</div></div>
     </div>
@@ -20,9 +20,40 @@
       this.data = data
       this.nodes = [] // 将所有的节点放入
     }
-    ViewModel.prototype.bindNode = function() {}
-    ViewModel.prototype.update = function() {}
+
     let obj = { msg: new ViewModel('hello'), name: new ViewModel('双向绑定') }
+
+    // 将节点和数据绑在一起
+    ViewModel.prototype.bindNode = function(node) {
+      this.nodes.push(node)
+    }
+    // 将绑在节点的数据更新到dom树种
+    ViewModel.prototype.update = function() {
+      this.nodes.forEach(node => {
+        if (node.nodeType === 1) {
+          node.value = this.data
+        } else {
+          node.textContent = node.initProperty.replace(
+            /\{\{([^}]*)\}\}/g,
+            function() {
+              return obj[arguments[1].trim()].data
+            }
+          )
+        }
+      })
+    }
+    // 重新设值
+    ViewModel.prototype.setValue = function(newVal) {
+      if (newVal !== this.data) {
+        this.data = newVal
+        this.update()
+      }
+    }
+
+    // 取值
+    ViewModel.prototype.getValue = function() {
+      return this.data
+    }
 
     function compile(el) {
       // 获取根节点
@@ -33,22 +64,34 @@
         fragment.appendChild(rootEl.firstChild)
       }
       function replaceEl(fragment) {
-        console.log('fragment', fragment)
         // 数据在回流之前做处理
         Array.from(fragment.childNodes).forEach(node => {
           if (node.nodeType === 1) {
             //是元素
             Array.from(node.attributes).forEach(attr => {
-              if (attr.name.includes('toy-')) {
-                // console.log('node', node)
+              let { name, value } = attr
+              if (name.includes('toy-')) {
+                obj[value].bindNode(node)
+                // 添加input输入监听事件
+                node.addEventListener('input', function(e) {
+                  obj[value].setValue(e.target.value)
+                })
               }
             })
           }
 
           // 判断有么有{{}}的元素
           let reg = /\{\{([^}]*)\}\}/g
-          if (node.nodeType === 3 && reg.test(node.textContent)) {
-            console.log('nodeT', node)
+
+          let text = node.textContent
+          if (node.nodeType === 3 && reg.test(text)) {
+            // console.dir(node)
+            node['initProperty'] = text
+            console.log('node', node.initProperty)
+            text.replace(reg, function() {
+              // 去除变量两头空格
+              obj[arguments[1].trim()].bindNode(node)
+            })
             //是文本
           }
 
@@ -59,9 +102,11 @@
         })
       }
       replaceEl(fragment)
+      Object.keys(obj).forEach(key => {
+        obj[key].update()
+      })
       rootEl.appendChild(fragment)
     }
-    conosle.log('kkk')
     compile('#app')
   </script>
 </html>
