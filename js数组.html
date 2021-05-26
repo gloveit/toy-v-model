@@ -24,7 +24,7 @@
       // 降序
       return value2 - value1
     }
-    console.log('arr', arr.sort(compare1))
+    // console.log('arr', arr.sort(compare1))
 
     // 归并方法, reduce不会改变原有的数组
     let addArr = [1, 2, 3, 4]
@@ -106,5 +106,21 @@
     //     console.log('i', i)
     //   }, 0)
     // }
+
+    // vue2中的data()为什们是一个函数？
+    // 构造函数的this指向实例本身
+    function Component() {
+      this.data = this.data()
+    }
+    Component.prototype.data = function() {
+      return {
+        name: 'jack',
+        age: 22
+      }
+    }
+    var componentA = new Component()
+    var componentB = new Component()
+    componentA.data.age = 55
+    // console.log(componentA, componentB)
   </script>
 </html>
