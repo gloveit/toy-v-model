@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>toy-vue2-v-model</title>
+  </head>
+  <body>
+    <div id="#app">
+      <input type="text" toy-model="obj.name" />
+      <input type="text" toy-model="obj.age" />
+      {{ obj.name }} {{ obj.age }}
+      <div><div>{{ obj.name }}</div></div>
+      <div><div>{{ obj.age }}</div></div>
+    </div>
+    <script>
+      let obj = { name: 'hello', age: 'vue2Model' }
+      // 初始化根节点
+      function initRoot() {
+        let rootEl = document.getElementById('#app')
+        // 创建临时碎片文档
+        let fragment = document.createDocumentFragment()
+        while (rootEl.firstChild) {
+          fragment.appendChild(rootEl.firstChild)
+        }
+        // 不断遍历dom节点，直到没有dom节点为止
+        function replaceEl(fragment) {
+          Array.from(fragment.childNodes).forEach(node => {
+            if (node.nodeType === 1) {
+              //是元素
+              Array.from(node.attributes).forEach(attr => {
+                let { name, value } = attr
+                if (name.includes('toy-')) {
+                  bindNode(node)
+                  let objAttr = value.split('.')
+                  updated(objAttr[1])
+                  // let newObj = copyData(obj, objAttr[1], obj[objAttr[1]])
+                  // node.value = newObj[objAttr[1]]
+                  // node.value = obj[objAttr[1]]
+
+                  // watchData(node, obj, objAttr[1])
+                }
+              })
+            }
+
+            // 是文本节点
+            let reg = /\{\{([^}]*)\}\}/g
+            let text = node.textContent
+            let showText = ''
+            if (node.nodeType === 3 && reg.test(text)) {
+              bindNode(node)
+              // console.dir(node)
+              node['initProperty'] = text
+              text.replace(reg, function() {
+                // 去除变量两头空格
+                let objAttr = arguments[1].trim().split('.')
+                // console.log('obj', obj)
+                // showText += obj[objAttr[1]]
+                showText += updated(objAttr[1])
+              })
+              node.textContent = showText
+              //是文本
+            }
+
+            //查找嵌套变量，直到找到为止
+            if (node.childNodes.length) {
+              replaceEl(node)
+            }
+          })
+        }
+
+        // }
+
+        // 从新设置对象的get,set
+        function observer(obj, key, value) {
+          Object.defineProperty(obj, key, {
+            get: function() {
+              return this[key]
+            },
+            set: function(value) {
+              this[key] = value
+            }
+          })
+        }
+
+        let virtualDom = []
+        // 虚拟dom
+        function bindNode(node) {
+          virtualDom.push(node)
+        }
+
+        // 更新dom数据
+        function updated(key) {
+          virtualDom.forEach(node => {
+            console.log('node', node)
+            if (node.nodeType === 1) {
+              node.value = obj[key]
+            } else {
+              node.textContent = node.initProperty.replace(
+                /\{\{([^}]*)\}\}/g,
+                function() {
+                  return obj[arguments[1].trim()]
+                }
+              )
+            }
+          })
+        }
+
+        // watcher监听事件，对象发生改变时渲染视图
+        function watcher(key, value) {
+          obj[key] = value
+          updated(key)
+        }
+
+        // 设置对象描述属性
+        function copyData(obj, key, val) {
+          Object.defineProperty(obj, key, {
+            value: val,
+            enumerable: true,
+            writable: true,
+            configurable: true
+          })
+          // return obj
+        }
+
+        // watch事件，有数据变化时更变数据
+        // function watchData(node, obj, key) {
+        //   node.addEventListener('input', function(e) {
+        //     obj[key] = e.target.value
+        //   })
+        // }
+
+        // 返回已绑好数据的vitural dom
+        replaceEl(fragment)
+
+        // 返回已经渲染好数据的dom树
+        rootEl.appendChild(fragment)
+      }
+      initRoot('#app')
+    </script>
+  </body>
+</html>
